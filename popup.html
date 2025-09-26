@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <style>
+        body {
+            width: 300px;
+            padding: 20px;
+            border-radius: 100px;
+            font-family: Arial, sans-serif;
+        }
+
+        .button {
+            width: 100%;
+            padding: 10px;
+            margin: 5px 0;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        .record-btn {
+            background-color: #ff4757;
+            color: white;
+        }
+
+        .stop-btn {
+            background-color: #2ed573;
+            color: white;
+        }
+
+        .status {
+            padding: 10px;
+            text-align: center;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+
+        .recording {
+            background-color: #ffecec;
+            color: #ff4757;
+        }
+
+        .idle {
+            background-color: #ecf7ec;
+            color: #2ed573;
+        }
+    </style>
+</head>
+
+<body>
+    <h3>Koom AI Recorder</h3>
+    <div id="status" class="status idle">Ready to record</div>
+
+    <button id="recordTab" class="button record-btn">Record Tab</button>
+    <button id="recordScreen" class="button record-btn">Record Screen</button>
+    <button id="stopRecording" class="button stop-btn" disabled>Stop Recording</button>
+
+    <script src="popup.js"></script>
+</body>
+
+</html>
