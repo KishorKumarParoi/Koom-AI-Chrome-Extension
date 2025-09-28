@@ -1,4 +1,10 @@
-const runCode = async () => {
+// Get DOM element references
+const recordTab = document.getElementById('recordTab');
+const recordScreen = document.getElementById('recordScreen');
+const stopBtn = document.getElementById('stopRecording');
+const statusDiv = document.getElementById('status');
+
+const injectCamera = async () => {
     // inject the content script into the current page
     const tab = await chrome.tabs.query({
         active: true,
@@ -26,15 +32,26 @@ const checkRecording = async () => {
     return [recordingStatus, recordingType]
 }
 
-const startRecording = async (type) => {
+
+const updateRecording = async (type) => {
     console.log('start recording', type);
+
     try {
-        await chrome.runtime.sendMessage({
-            action: 'startRecording',
-            type: type
-        })
-        // Update UI after starting recording
-        await chrome.storage.local.set({ recording: true, type: type });
+        const recordingState = await checkRecording()
+        if (recordingState[0] === true) {
+            // stop recording
+            chrome.runtime.sendMessage({
+                action: 'stop-recording',
+            });
+            chrome.storage.local.set({ recording: false, type: '' });
+        } else {
+            chrome.runtime.sendMessage({
+                action: 'start-recording',
+                type: type
+            });
+            chrome.storage.local.set({ recording: true, type: type });
+            injectCamera();
+        }
     } catch (error) {
         console.error('Failed to start recording:', error);
     }
@@ -43,25 +60,10 @@ const startRecording = async (type) => {
 const init = async () => {
     console.log('Hello World!!!');
 
-    // Get DOM element references
-    const recordTab = document.getElementById('recordTab');
-    const recordScreen = document.getElementById('recordScreen');
-    const stopBtn = document.getElementById('stopRecording');
-    const statusDiv = document.getElementById('status');
-
-    // Debug: Check if elements exist
-    console.log('recordTab:', recordTab);
-    console.log('recordScreen:', recordScreen);
-    console.log('stopBtn:', stopBtn);
-    console.log('statusDiv:', statusDiv);
-
     if (!recordTab || !recordScreen) {
         console.error('Required DOM elements not found!');
         return;
     }
-
-    // Run the content script injection
-    await runCode();
 
     // Check recording state
     const recordingState = await checkRecording();
@@ -85,20 +87,20 @@ const init = async () => {
     // Add event listeners
     recordTab.addEventListener('click', () => {
         console.log('record tab clicked');
-        startRecording('tab');
+        updateRecording('tab');
     });
 
     recordScreen.addEventListener('click', () => {
         console.log('record screen clicked');
-        startRecording('screen');
+        updateRecording('screen');
     });
 
     stopBtn.addEventListener('click', async () => {
         console.log('stop recording clicked');
         try {
-            await chrome.runtime.sendMessage({ action: 'stopRecording' });
-            await chrome.storage.local.set({ recording: false, type: '' });
-            // Refresh the popup
+            chrome.runtime.sendMessage({ action: 'stop-recording' });
+            chrome.storage.local.set({ recording: false, type: '' });
+            // await removeCamera(); 
             window.location.reload();
         } catch (error) {
             console.error('Failed to stop recording:', error);

@@ -1,13 +1,14 @@
 // add listener for messages 
-chrome.runtime.onMessage.addEventListener(function (request, sender, sendResponse) {
-    console.log('message received', request, sender);
+chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
+    console.log('message received', request, sender, sendResponse);
 
-    switch (request.type) {
+    switch (request.action) {
         case 'start-recording':
             console.log(('start recording', request.type));
             break;
         case 'stop-recording':
             console.log('stop recording', request.type);
+            console.log('helooooooooo');
             break;
         default:
             console.log('default');
@@ -15,6 +16,10 @@ chrome.runtime.onMessage.addEventListener(function (request, sender, sendRespons
 
     return true
 })
+
+chrome.runtime.onInstalled.addListener(() => {
+    console.log('Koom AI Extension installed');
+});
 
 // let recording = false;
 // let mediaRecorder = null;

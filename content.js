@@ -1,5 +1,5 @@
-const cameraId = 'koom-ai-camera'
-const camera = document.getElementById(cameraId)
+window.cameraId = 'koom-ai-camera'
+window.camera = document.getElementById(cameraId)
 
 // check if camera exists
 if (camera) {
