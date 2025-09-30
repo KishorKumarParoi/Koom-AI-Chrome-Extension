@@ -2,8 +2,10 @@ window.cameraId = 'koom-ai-camera'
 window.camera = document.getElementById(cameraId)
 
 // check if camera exists
-if (camera) {
+if (window.camera) {
     console.log('camera found', camera);
+    // make sure it is visible 
+    document.querySelector('#koom-ai-chrome-extension').style.display = 'block'
 }
 else {
     const cameraElement = document.createElement('iframe')
@@ -25,4 +27,9 @@ else {
 
     cameraElement.src = chrome.runtime.getURL('camera.html')
     document.body.appendChild(cameraElement)
+
+    const container = document.querySelector('#koom-ai-chrome-extension')
+    if (container) {
+        container.style.display = 'block'
+    }
 }

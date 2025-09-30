@@ -23,6 +23,30 @@ const injectCamera = async () => {
     })
 }
 
+
+const removeCamera = async () => {
+    // inject the content script into the current page
+    const tab = await chrome.tabs.query({ active: true, currentWindow: true })
+    if (!tab)
+        return
+
+    const tabId = tab[0].id;
+    console.log('inject into tab', tabId);
+
+    await chrome.scripting.executeScript({
+        // content.js is the file that will be injected
+        func: () => {
+            const camera = document.querySelector("#koom-ai-chrome-extension")
+            if (!camera) return
+            document.querySelector('#koom-ai-chrome-extension').style.display = 'none'
+        },
+        target: {
+            tabId
+        }
+    })
+}
+
+
 // check chrome storage if recording is on
 const checkRecording = async () => {
     const recording = await chrome.storage.local.get(['recording', 'type'])
@@ -44,6 +68,7 @@ const updateRecording = async (type) => {
                 action: 'stop-recording',
             });
             chrome.storage.local.set({ recording: false, type: '' });
+            removeCamera()
         } else {
             chrome.runtime.sendMessage({
                 action: 'start-recording',
