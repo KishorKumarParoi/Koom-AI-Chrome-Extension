@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Offscreen Document - Koom AI Recording</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 20px;
+            font-family: Arial, sans-serif;
+            background-color: #f5f5f5;
+            display: none;
+            /* Hidden from user */
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+        }
+
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin-bottom: 15px;
+            font-weight: bold;
+        }
+
+        .status.idle {
+            background-color: #e3f2fd;
+            color: #1976d2;
+        }
+
+        .status.recording {
+            background-color: #ffebee;
+            color: #d32f2f;
+        }
+
+        .debug-info {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .hidden {
+            display: none;
+        }
+    </style>
+</head>
+
+<body>
+
+    <div class="container">
+        <h2>🎥 Koom AI Recording Service</h2>
+        <p>This document handles media recording in the background.</p>
+
+        <div id="status" class="status idle">
+            Status: Ready
+        </div>
+
+        <div class="debug-info" id="debugInfo">
+            Offscreen document loaded...\n
+        </div>
+    </div>
+
+    <script src="offscreen.js"></script>
+</body>
+
+</html>

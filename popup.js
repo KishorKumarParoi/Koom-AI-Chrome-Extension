@@ -34,7 +34,7 @@ const checkRecording = async () => {
 
 
 const updateRecording = async (type) => {
-    console.log('start recording', type);
+    console.log('Update recording', type);
 
     try {
         const recordingState = await checkRecording()
@@ -47,11 +47,14 @@ const updateRecording = async (type) => {
         } else {
             chrome.runtime.sendMessage({
                 action: 'start-recording',
-                type: type
+                type
             });
-            chrome.storage.local.set({ recording: true, type: type });
+            chrome.storage.local.set({ recording: true, type });
             injectCamera();
         }
+
+        // close popup
+        window.close()
     } catch (error) {
         console.error('Failed to start recording:', error);
     }
@@ -76,12 +79,14 @@ const init = async () => {
         recordScreen.textContent = 'Record Screen';
         stopBtn.disabled = true;
     } else {
-        console.log("Currently recording:", recordingState[1]);
-        recordTab.disabled = true;
-        recordScreen.disabled = true;
-        stopBtn.disabled = false;
-        statusDiv.textContent = `Recording ${recordingState[1]}...`;
-        statusDiv.className = 'status recording';
+        if (recordingState[0] && recordingState[1] !== '') {
+            console.log("Currently recording:", recordingState[1]);
+            recordTab.disabled = true;
+            recordScreen.disabled = true;
+            stopBtn.disabled = false;
+            statusDiv.textContent = `Recording ${recordingState[1]}...`;
+            statusDiv.className = 'status recording';
+        }
     }
 
     // Add event listeners

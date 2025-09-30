@@ -6,8 +6,8 @@
   "minimum_chrome_version": "116",
   "action": {
     "default_icon": {
-      "16": "icons/not-recording.png",
-      "32": "icons/not-recording.png"
+      "16": "icons/icons8-recording-64.png",
+      "32": "icons/icons8-recording-50.png"
     },
     "default_popup": "popup.html"
   },
