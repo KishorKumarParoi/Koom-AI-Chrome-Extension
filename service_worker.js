@@ -234,7 +234,7 @@ chrome.runtime.onMessage.addListener(function (request, sender, sendResponse) {
             openTabWithVideo(request)
             break;
         case 'start-recording':
-            console.log('start recording', request.type);
+            console.log('start recording', request.type); 
             startRecording(request.type)
             break;
         case 'stop-recording':
