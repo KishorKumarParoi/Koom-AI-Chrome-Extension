@@ -23,7 +23,53 @@ const updateStatus = (message, type = 'loading') => {
     console.log(`Status: ${message}`);
 };
 
-// ✅ FIXED: Play video function
+// ✅ FIXED: Better video error handling
+const handleVideoError = (event) => {
+    const video = event.target;
+    let errorMessage = 'Unknown video error';
+    let errorDetails = '';
+
+    if (video.error) {
+        switch (video.error.code) {
+            case video.error.MEDIA_ERR_ABORTED:
+                errorMessage = 'Video loading aborted';
+                errorDetails = 'The video loading was aborted by the user';
+                break;
+            case video.error.MEDIA_ERR_NETWORK:
+                errorMessage = 'Network error';
+                errorDetails = 'A network error occurred while loading the video';
+                break;
+            case video.error.MEDIA_ERR_DECODE:
+                errorMessage = 'Video decode error';
+                errorDetails = 'The video could not be decoded - format may be unsupported';
+                break;
+            case video.error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+                errorMessage = 'Video format not supported';
+                errorDetails = 'The video format or MIME type is not supported';
+                break;
+            default:
+                errorMessage = 'Unknown video error';
+                errorDetails = `Error code: ${video.error.code}`;
+        }
+
+        if (video.error.message) {
+            errorDetails += ` - ${video.error.message}`;
+        }
+    }
+
+    console.error('Video error details:', {
+        message: errorMessage,
+        details: errorDetails,
+        code: video.error?.code,
+        src: video.src,
+        currentVideoUrl: currentVideoUrl,
+        videoElement: video
+    });
+
+    updateStatus(`${errorMessage}: ${errorDetails}`, 'error');
+};
+
+// ✅  Play video function with better error handling
 const playVideo = async (message) => {
     try {
         console.log('Playing video with message:', message);
@@ -40,59 +86,115 @@ const playVideo = async (message) => {
 
         updateStatus('Loading video...', 'loading');
 
+        // Clear any existing event listeners to prevent multiple bindings
+        video.removeEventListener('error', handleVideoError);
+
         // Handle base64 data
         if (message.base64 && !message.videoUrl) {
             console.log('Converting base64 to blob...');
-            const blob = await base64ToBlob(message.base64);
-            const blobUrl = URL.createObjectURL(blob);
-            currentVideoUrl = blobUrl;
-            currentBlob = blob;
+            try {
+                const blob = await base64ToBlob(message.base64);
+                const blobUrl = URL.createObjectURL(blob);
+                currentVideoUrl = blobUrl;
+                currentBlob = blob;
+                console.log('Base64 converted to blob URL:', blobUrl);
+            } catch (blobError) {
+                throw new Error(`Failed to convert base64 to blob: ${blobError.message}`);
+            }
         } else {
             currentVideoUrl = url;
+            console.log('Using direct video URL:', currentVideoUrl);
+        }
+
+        // ✅  Better validation of video URL
+        if (!currentVideoUrl || currentVideoUrl === 'undefined') {
+            throw new Error('Invalid video URL generated');
         }
 
         // Set video source
         video.src = currentVideoUrl;
+        console.log('Video source set to:', video.src);
 
         // Save to storage
         await saveVideo(currentVideoUrl);
 
-        // Add event listeners
+        // ✅  Add event listeners with better error handling
         video.addEventListener('loadstart', () => {
+            console.log('Video load started');
             updateStatus('Loading video...', 'loading');
         });
 
+        video.addEventListener('loadedmetadata', () => {
+            console.log('Video metadata loaded', {
+                duration: video.duration,
+                videoWidth: video.videoWidth,
+                videoHeight: video.videoHeight
+            });
+        });
+
         video.addEventListener('canplay', () => {
+            console.log('Video can start playing');
             updateStatus('Video ready to play', 'success');
         });
 
         video.addEventListener('loadeddata', () => {
+            console.log('Video data loaded');
             updateStatus('Video loaded successfully', 'success');
-            // Auto-play
-            video.play().catch(error => {
-                console.log('Auto-play prevented:', error);
+
+            // Auto-play with better error handling
+            video.play().then(() => {
+                console.log('Video started playing automatically');
+            }).catch(playError => {
+                console.log('Auto-play prevented by browser:', playError);
                 updateStatus('Click play to start video', 'success');
             });
         });
 
-        video.addEventListener('error', (error) => {
-            console.error('Video error:', error);
-            updateStatus('Failed to load video', 'error');
+        video.addEventListener('progress', () => {
+            if (video.buffered.length > 0) {
+                const buffered = video.buffered.end(0) / video.duration * 100;
+                console.log(`Video buffered: ${buffered.toFixed(1)}%`);
+            }
+        });
+
+        // ✅ FIXED: Better error event listener
+        video.addEventListener('error', handleVideoError);
+
+        // ✅ ADDED: Additional debugging events
+        video.addEventListener('stalled', () => {
+            console.warn('Video download stalled');
+            updateStatus('Video loading stalled...', 'loading');
+        });
+
+        video.addEventListener('waiting', () => {
+            console.log('Video waiting for more data');
+            updateStatus('Buffering video...', 'loading');
+        });
+
+        video.addEventListener('playing', () => {
+            console.log('Video is playing');
+            updateStatus('Video playing', 'success');
         });
 
         console.log('Video setup completed');
 
     } catch (error) {
-        console.error('Error playing video:', error);
-        updateStatus(`Error: ${error.message}`, 'error');
+        console.error('Error in playVideo function:', error);
+        updateStatus(`Setup Error: ${error.message}`, 'error');
     }
 };
 
-// ✅ ADDED: Convert base64 to blob
+// ✅  Convert base64 to blob with better error handling
 const base64ToBlob = async (base64Data) => {
     try {
+        console.log('Converting base64 to blob, data length:', base64Data.length);
+
         // Remove data URL prefix if present
         const base64 = base64Data.includes(',') ? base64Data.split(',')[1] : base64Data;
+
+        if (!base64 || base64.length === 0) {
+            throw new Error('Empty base64 data provided');
+        }
 
         // Convert base64 to binary
         const byteCharacters = atob(base64);
@@ -103,15 +205,22 @@ const base64ToBlob = async (base64Data) => {
         }
 
         const byteArray = new Uint8Array(byteNumbers);
-        return new Blob([byteArray], { type: 'video/webm' });
+        const blob = new Blob([byteArray], { type: 'video/webm' });
+
+        console.log('Blob created successfully:', {
+            size: blob.size,
+            type: blob.type
+        });
+
+        return blob;
 
     } catch (error) {
         console.error('Error converting base64 to blob:', error);
-        throw new Error('Failed to convert video data');
+        throw new Error(`Failed to convert video data: ${error.message}`);
     }
 };
 
-// ✅ ADDED: Download video function
+// ✅  Download video function
 const downloadVideo = () => {
     try {
         if (currentVideoUrl || currentBlob) {
@@ -122,8 +231,10 @@ const downloadVideo = () => {
             a.click();
             document.body.removeChild(a);
             updateStatus('Download started!', 'success');
+            console.log('Download initiated for:', currentVideoUrl);
         } else {
             updateStatus('No video to download', 'error');
+            console.warn('No video available for download');
         }
     } catch (error) {
         console.error('Download failed:', error);
@@ -131,35 +242,56 @@ const downloadVideo = () => {
     }
 };
 
-// ✅ ADDED: Restart video function
+// ✅  Restart video function
 const restartVideo = () => {
     if (video && video.src) {
         video.currentTime = 0;
-        video.play();
-        updateStatus('Video restarted', 'success');
+        video.play().then(() => {
+            updateStatus('Video restarted', 'success');
+            console.log('Video restarted successfully');
+        }).catch(error => {
+            console.error('Failed to restart video:', error);
+            updateStatus('Failed to restart video', 'error');
+        });
+    } else {
+        updateStatus('No video to restart', 'error');
+        console.warn('No video source available to restart');
     }
 };
 
 // ✅ ADDED: Fullscreen function
 const toggleFullscreen = () => {
-    if (video.requestFullscreen) {
-        video.requestFullscreen();
-    } else if (video.webkitRequestFullscreen) {
-        video.webkitRequestFullscreen();
-    } else if (video.msRequestFullscreen) {
-        video.msRequestFullscreen();
+    try {
+        if (video.requestFullscreen) {
+            video.requestFullscreen();
+        } else if (video.webkitRequestFullscreen) {
+            video.webkitRequestFullscreen();
+        } else if (video.msRequestFullscreen) {
+            video.msRequestFullscreen();
+        } else {
+            updateStatus('Fullscreen not supported', 'error');
+            return;
+        }
+        console.log('Fullscreen requested');
+    } catch (error) {
+        console.error('Fullscreen failed:', error);
+        updateStatus('Fullscreen failed', 'error');
     }
 };
 
-// ✅ FIXED: Message listener
+// ✅  Message listener
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     console.log('Video player received message:', message);
 
     try {
         switch (message.type) {
             case 'play-video':
-                playVideo(message);
-                sendResponse({ success: true });
+                playVideo(message).then(() => {
+                    sendResponse({ success: true });
+                }).catch(error => {
+                    console.error('Play video failed:', error);
+                    sendResponse({ success: false, error: error.message });
+                });
                 break;
             default:
                 console.log('Unknown message type:', message.type);
@@ -173,20 +305,36 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true; // Keep message channel open
 });
 
-// ✅ ADDED: Initialize on page load
+// ✅  Initialize on page load
 document.addEventListener('DOMContentLoaded', async () => {
-    console.log('Video player loaded');
+    console.log('Video player DOM loaded');
     updateStatus('Waiting for video...', 'loading');
+
+    // ✅ ADDED: Check if video element exists
+    if (!video) {
+        console.error('Video element not found in DOM');
+        updateStatus('Video element not found', 'error');
+        return;
+    }
+
+    console.log('Video element found:', {
+        id: video.id,
+        tagName: video.tagName,
+        controls: video.controls
+    });
 
     // Check if there's a saved video in storage
     try {
         const result = await chrome.storage.local.get(['videoUrl']);
         if (result.videoUrl) {
-            console.log('Found saved video, loading:', result.videoUrl);
+            console.log('Found saved video in storage, loading:', result.videoUrl);
             await playVideo({ videoUrl: result.videoUrl });
+        } else {
+            console.log('No saved video found in storage');
         }
     } catch (error) {
         console.error('Error loading saved video:', error);
+        updateStatus('Error loading saved video', 'error');
     }
 
     // Signal to service worker that page is ready
@@ -194,6 +342,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         await chrome.runtime.sendMessage({
             action: 'video-player-ready'
         });
+        console.log('Signaled service worker that video player is ready');
     } catch (error) {
         console.log('Could not signal ready state:', error);
     }
@@ -203,7 +352,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 window.addEventListener('beforeunload', () => {
     if (currentVideoUrl && currentVideoUrl.startsWith('blob:')) {
         URL.revokeObjectURL(currentVideoUrl);
+        console.log('Cleaned up blob URL on page unload');
     }
 });
 
-console.log('Video player script loaded');
+console.log('Video player script loaded and ready');

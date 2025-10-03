@@ -24,6 +24,24 @@ const updateRecording = async (state, type) => {
     }
 }
 
+// ✅ ADD: Helper function to check if URL is valid for injection
+const isValidInjectionUrl = (url) => {
+    if (!url) return false;
+
+    const restrictedPrefixes = [
+        'chrome://',
+        'chrome-extension://',
+        'about:',
+        'moz-extension://',
+        'edge://',
+        'brave://',
+        'opera://',
+        'file://'
+    ];
+
+    return !restrictedPrefixes.some(prefix => url.startsWith(prefix));
+};
+
 const injectCamera = async () => {
     try {
         // inject the content script into the current page
@@ -31,14 +49,18 @@ const injectCamera = async () => {
             active: true, currentWindow: true
         })
 
-        if (!tab || tab.length === 0) return false
+        if (!tab || tab.length === 0) {
+            console.log('No active tab found');
+            return false;
+        }
+
         const tabId = tab[0].id;
         const tabUrl = tab[0].url;
 
         console.log('inject into tab', tabId, tabUrl);
 
-        // Check for restricted URLs
-        if (tabUrl.startsWith('chrome://') || tabUrl.startsWith('chrome-extension://') || tabUrl.startsWith('about:')) {
+        // ✅  Use helper function for URL validation
+        if (!isValidInjectionUrl(tabUrl)) {
             console.log('Cannot inject into restricted URL:', tabUrl);
             return false;
         }
@@ -48,6 +70,7 @@ const injectCamera = async () => {
             target: { tabId }
         })
 
+        console.log('Camera injected successfully');
         return true;
     } catch (error) {
         console.error('Error injecting camera:', error);
@@ -55,20 +78,137 @@ const injectCamera = async () => {
     }
 }
 
+// ✅ ADD: Missing hideCamera function
+const hideCamera = async () => {
+    try {
+        const tabs = await chrome.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+
+        if (!tabs || tabs.length === 0) {
+            console.log('No active tab found');
+            return { success: false, reason: 'no-active-tab' };
+        }
+
+        const tab = tabs[0];
+        const tabId = tab.id;
+        const tabUrl = tab.url;
+
+        console.log('Hiding camera in tab:', tabId, tabUrl);
+
+        // ✅  Use helper function for URL validation
+        if (!isValidInjectionUrl(tabUrl)) {
+            console.log('Cannot hide camera in restricted URL:', tabUrl);
+            return { success: false, reason: 'restricted-url' };
+        }
+
+        try {
+            // Try to send message to existing content script first
+            const response = await chrome.tabs.sendMessage(tabId, {
+                action: 'hide-camera'
+            });
+
+            if (response && response.success) {
+                console.log('Camera hidden via message');
+                return { success: true, method: 'message' };
+            }
+        } catch (error) {
+            console.log('Message failed, injecting script to hide camera...');
+        }
+
+        // Fallback: inject script to hide camera
+        await chrome.scripting.executeScript({
+            func: () => {
+                const container = document.getElementById('koom-ai-chrome-extension');
+                if (container) {
+                    container.style.display = 'none';
+                    console.log('Camera container hidden');
+                    return { success: true };
+                }
+                return { success: false, reason: 'no-container' };
+            },
+            target: { tabId }
+        });
+
+        return { success: true, method: 'injection' };
+
+    } catch (error) {
+        console.error('Error hiding camera:', error);
+        return { success: false, error: error.message };
+    }
+};
+
+// ✅ ADD: Missing showCamera function
+const showCamera = async () => {
+    try {
+        const tabs = await chrome.tabs.query({
+            active: true,
+            currentWindow: true
+        });
+
+        if (!tabs || tabs.length === 0) {
+            console.log('No active tab found');
+            return { success: false, reason: 'no-active-tab' };
+        }
+
+        const tab = tabs[0];
+        const tabId = tab.id;
+        const tabUrl = tab.url;
+
+        console.log('Showing camera in tab:', tabId, tabUrl);
+
+        // ✅  Use helper function for URL validation
+        if (!isValidInjectionUrl(tabUrl)) {
+            console.log('Cannot show camera in restricted URL:', tabUrl);
+            return { success: false, reason: 'restricted-url' };
+        }
+
+        try {
+            // Try to send message to existing content script first
+            const response = await chrome.tabs.sendMessage(tabId, {
+                action: 'show-camera'
+            });
+
+            if (response && response.success) {
+                console.log('Camera shown via message');
+                return { success: true, method: 'message' };
+            }
+        } catch (error) {
+            console.log('Message failed, injecting camera...');
+        }
+
+        // Fallback: inject content script to show camera
+        await chrome.scripting.executeScript({
+            files: ["content.js"],
+            target: { tabId }
+        });
+
+        return { success: true, method: 'injection' };
+
+    } catch (error) {
+        console.error('Error showing camera:', error);
+        return { success: false, error: error.message };
+    }
+};
+
 const removeCamera = async () => {
     try {
         // inject the content script into the current page
         const tab = await chrome.tabs.query({ active: true, currentWindow: true })
-        if (!tab || tab.length === 0) return false
+        if (!tab || tab.length === 0) {
+            console.log('No active tab found for camera removal');
+            return false;
+        }
 
         const tabId = tab[0].id;
         const tabUrl = tab[0].url;
         console.log('remove camera from tab', tabId, tabUrl);
 
-        // Check for restricted URLs
-        if (tabUrl.startsWith('chrome://') || tabUrl.startsWith('chrome-extension://') || tabUrl.startsWith('about:')) {
+        // ✅  Use helper function for URL validation
+        if (!isValidInjectionUrl(tabUrl)) {
             console.log('Cannot remove camera from restricted URL:', tabUrl);
-            return false;
+            return false; // Return false but don't throw error
         }
 
         await chrome.scripting.executeScript({
@@ -89,14 +229,15 @@ const removeCamera = async () => {
             target: { tabId }
         })
 
+        console.log('Camera removed successfully');
         return true;
     } catch (error) {
         console.error('Error removing camera:', error);
-        return false;
+        return false; // Return false instead of throwing
     }
 }
 
-// listen for changes to the focused / current tab
+// ✅  Better error handling in tab activation listener
 chrome.tabs.onActivated.addListener(async (activeInfo, tab) => {
     console.log('tab activated', activeInfo);
 
@@ -104,28 +245,43 @@ chrome.tabs.onActivated.addListener(async (activeInfo, tab) => {
         // grab the tab
         const activeTab = await chrome.tabs.get(activeInfo.tabId)
         if (!activeTab) {
+            console.log('No active tab found');
             return
         }
 
         const tabUrl = activeTab.url;
-        // if chrome or extension page, return
-        if (tabUrl.startsWith('chrome://') || tabUrl.startsWith('chrome-extension://')) {
-            console.log('chrome or extension page - exiting');
+
+        // ✅  Use helper function for URL validation
+        if (!isValidInjectionUrl(tabUrl)) {
+            console.log('Restricted URL detected, skipping camera operations:', tabUrl);
             return
         }
 
-        // check if we are recording & if we are recording the screen
+        // check if we are recording & if we are recording the tab
         const [recording, recordingType] = await checkRecording()
 
-        if (recording && recordingType === 'tab') {  // ✅ FIXED: Changed 'screen' to 'tab'
-            // inject the camera for tab recording
-            await injectCamera()
+        if (recording && recordingType === 'tab') {
+            // Get current webcam preference
+            const result = await chrome.storage.local.get(['currentWebcamEnabled']);
+            const webcamEnabled = result.currentWebcamEnabled !== undefined ? result.currentWebcamEnabled : true;
+
+            if (webcamEnabled) {
+                await injectCamera()
+                console.log('📹 Webcam injected on tab switch (enabled)');
+            } else {
+                await hideCamera()
+                console.log('🙈 Webcam hidden on tab switch (disabled)');
+            }
         } else {
-            // remove the camera
-            await removeCamera()
+            // Not recording - try to remove camera safely
+            const removeResult = await removeCamera();
+            if (removeResult) {
+                console.log('Camera removed successfully on tab switch');
+            }
         }
     } catch (error) {
         console.error('Error in tab activation listener:', error);
+        // Don't throw - just log and continue
     }
 })
 
@@ -197,8 +353,10 @@ const stopRecording = async (type) => {
             await injectCamera(); // Show webcam again
             console.log('📹 Webcam overlay restored after recording');
         } else {
-            await removeCamera(); // Remove webcam completely
-            console.log('🗑️ Webcam overlay removed after recording');
+            const removeResult = await removeCamera(); // Remove webcam completely
+            if (removeResult) {
+                console.log('🗑️ Webcam overlay removed after recording');
+            }
         }
 
         // Clear session preference
@@ -252,7 +410,7 @@ const waitForTabLoad = (tabId) => {
         const timeout = setTimeout(() => {
             chrome.tabs.onUpdated.removeListener(listener);
             reject(new Error('Tab load timeout after 10 seconds'));
-        }, 10000);
+        }, 1000);
 
         const listener = (updatedTabId, changeInfo, tab) => {
             if (updatedTabId === tabId && changeInfo.status === 'complete') {
@@ -377,7 +535,7 @@ const openTabWithVideo = async (message) => {
 
             setTimeout(async () => {
                 await chrome.action.setBadgeText({ text: "" });
-            }, 3000);
+            }, 1000);
         } catch (badgeError) {
             console.error('Error setting badge:', badgeError);
         }
@@ -386,7 +544,7 @@ const openTabWithVideo = async (message) => {
     }
 };
 
-// add listener for messages 
+// ✅ ENHANCED: Message listener with camera controls
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     console.log('message received', request, sender);
 
@@ -417,6 +575,44 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                         recordingType,
                         webcamEnabled: webcamResult.currentWebcamEnabled !== undefined ? webcamResult.currentWebcamEnabled : true
                     });
+                    break;
+                // ✅ ADD: New camera control actions
+                case 'show-camera':
+                    const showResult = await showCamera();
+                    sendResponse({ success: true, ...showResult });
+                    break;
+                case 'hide-camera':
+                    const hideResult = await hideCamera();
+                    sendResponse({ success: true, ...hideResult });
+                    break;
+                case 'toggle-camera':
+                    // Get current camera status and toggle
+                    try {
+                        const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+                        if (tabs && tabs.length > 0 && isValidInjectionUrl(tabs[0].url)) {
+                            const response = await chrome.tabs.sendMessage(tabs[0].id, {
+                                action: 'get-camera-status'
+                            });
+
+                            if (response && response.success) {
+                                const toggleResult = response.isVisible ? await hideCamera() : await showCamera();
+                                sendResponse({
+                                    success: true,
+                                    ...toggleResult,
+                                    newState: !response.isVisible
+                                });
+                            } else {
+                                // Fallback: just try to inject camera
+                                const fallbackResult = await injectCamera();
+                                sendResponse({ success: true, fallback: true, method: 'injection' });
+                            }
+                        } else {
+                            sendResponse({ success: false, reason: 'restricted-url' });
+                        }
+                    } catch (error) {
+                        console.error('Error toggling camera:', error);
+                        sendResponse({ success: false, error: error.message });
+                    }
                     break;
                 case 'desktop-record-ready':
                     console.log('Desktop record page is ready');
