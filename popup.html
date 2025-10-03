@@ -5,58 +5,141 @@
     <meta charset="utf-8">
     <style>
         body {
-            width: 200px;
+            width: 320px;
             padding: 20px;
-            border-radius: 100px;
             font-family: Arial, sans-serif;
         }
 
         .button {
             width: 100%;
-            padding: 10px;
-            margin: 5px 0;
+            padding: 12px;
+            margin: 8px 0;
             border: none;
-            border-radius: 5px;
+            border-radius: 6px;
             cursor: pointer;
-            font-size: 14px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: all 0.3s ease;
         }
 
         .record-btn {
-            background-color: #ff4757;
+            background: #4CAF50;
             color: white;
+        }
+
+        .record-btn:hover {
+            background: #45a049;
         }
 
         .stop-btn {
-            background-color: #2ed573;
+            background: #f44336;
             color: white;
         }
 
+        .stop-btn:hover {
+            background: #da190b;
+        }
+
+        .camera-btn {
+            background: #2196F3;
+            color: white;
+            font-size: 14px;
+            padding: 8px;
+        }
+
+        .camera-btn:hover {
+            background: #1976D2;
+        }
+
+        .camera-btn.active {
+            background: #FF9800;
+        }
+
         .status {
-            padding: 10px;
             text-align: center;
-            border-radius: 5px;
             margin: 10px 0;
+            font-weight: bold;
         }
 
         .recording {
-            background-color: #ffecec;
-            color: #ff4757;
+            color: #f44336;
         }
 
         .idle {
-            background-color: #ecf7ec;
-            color: #2ed573;
+            color: #4CAF50;
+        }
+
+        .section {
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 15px;
+            margin: 10px 0;
+            background: #f9f9f9;
+        }
+
+        .section-title {
+            font-size: 14px;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #333;
+        }
+
+        .webcam-options {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 10px;
+        }
+
+        .webcam-options .camera-btn {
+            flex: 1;
+        }
+
+        .setting-label {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 5px;
+        }
+
+        .webcam-preview {
+            font-size: 12px;
+            color: #888;
+            font-style: italic;
         }
     </style>
 </head>
 
 <body>
-    <h3>Koom AI Recorder</h3>
-    <div id="status" class="status idle">Ready to record</div>
+    <h2>🎬 Koom AI Recorder</h2>
 
-    <button id="recordTab" class="button record-btn">Record Tab</button>
-    <button id="recordScreen" class="button record-btn">Record Screen</button>
-    <button id="stopRecording" class="button stop-btn" disabled>Stop Recording</button>
+    <div id="status" class="status idle">Ready to Record</div>
+
+    <!-- Recording Controls -->
+    <div class="section">
+        <div class="section-title">📹 Recording Options</div>
+
+        <!-- Webcam Settings -->
+        <div class="setting-label">Webcam Overlay During Recording:</div>
+        <div class="webcam-options">
+            <button id="webcamShow" class="button camera-btn active">👁️ Show</button>
+            <button id="webcamHide" class="button camera-btn">🙈 Hide</button>
+        </div>
+        <div id="webcamPreview" class="webcam-preview">✅ Webcam will be visible during recording</div>
+
+        <!-- Record Buttons -->
+        <button id="recordTab" class="button record-btn">📱 Record Tab</button>
+        <button id="recordScreen" class="button record-btn">🖥️ Record Screen</button>
+        <button id="stopRecording" class="button stop-btn" style="display: none;">⏹️ Stop Recording</button>
+    </div>
+
+    <!-- Live Camera Controls (only shown during recording) -->
+    <div id="liveControls" class="section" style="display: none;">
+        <div class="section-title">🎥 Live Camera Controls</div>
+        <div class="webcam-options">
+            <button id="toggleCameraLive" class="button camera-btn">🔄 Toggle</button>
+            <button id="hideCameraLive" class="button camera-btn">🙈 Hide</button>
+            <button id="showCameraLive" class="button camera-btn">👁️ Show</button>
+        </div>
+    </div>
 
     <script src="popup.js"></script>
 </body>

@@ -1,49 +1,45 @@
-// listen for messages from the service worker
+let mediaRecorder;
+let recordedChunks = [];
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-    console.log('[offscreen] message received', message, sender);
+    console.log('📨 Offscreen received message:', message);
 
-    switch (message.action) {
-        case 'start-recording':
-            // startRecording(message.type)
-            console.log(('offscreen start recording tab', message.action));
-            break;
-        case 'stop-recording':
-            // stopRecording(message.action)
-            console.log('offscreen stop recording tab', message.action);
-            break;
-        default:
-            console.log('default');
+    if (message.target !== 'offscreen') {
+        return;
     }
-})
 
-let recorder;
-let data = [];
+    try {
+        switch (message.action) {
+            case 'start-recording':
+                startRecording(message.data);
+                sendResponse({ success: true });
+                break;
 
-async function stopRecording() {
+            case 'stop-recording':
+                stopRecording();
+                sendResponse({ success: true });
+                break;
 
-    if (recorder?.state === 'recording') {
-        recorder.stop()
-
-        // stop all streams
-        recorder.stream.getTracks().forEach((t) => t.stop())
+            default:
+                sendResponse({ success: false, error: 'Unknown action' });
+        }
+    } catch (error) {
+        console.error('❌ Error in offscreen:', error);
+        sendResponse({ success: false, error: error.message });
     }
-}
+
+    return true;
+});
 
 async function startRecording(streamId) {
     try {
-        if (recorder?.state === 'recording') {
-            throw new Error('Called startRecording while recording is in progress')
-        }
+        console.log('🎥 Starting offscreen recording with stream ID:', streamId);
 
-        console.log('Start Recording from offscreen', streamId);
-
-        // use the tabCaptured streamId
-
-        const media = await navigator.mediaDevices.getUserMedia({
+        // Get the media stream from the stream ID
+        const stream = await navigator.mediaDevices.getUserMedia({
             audio: {
                 mandatory: {
-                    chromeMediaSources: 'tab',
+                    chromeMediaSource: 'tab',
                     chromeMediaSourceId: streamId
                 }
             },
@@ -53,58 +49,72 @@ async function startRecording(streamId) {
                     chromeMediaSourceId: streamId
                 }
             }
-        })
+        });
 
-        // get microphone audio 
-        const microphone = await navigator.mediaDevices.getUserMedia({
-            audio: {
-                echoCancellation: false
+        console.log('✅ Stream obtained:', stream);
+
+        mediaRecorder = new MediaRecorder(stream, {
+            mimeType: 'video/webm;codecs=vp9,opus'
+        });
+
+        recordedChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+            console.log('📊 Data available:', event.data.size, 'bytes');
+            if (event.data.size > 0) {
+                recordedChunks.push(event.data);
             }
-        })
+        };
 
-        // combine the streams 
-        const mixedContext = new AudioContext()
-        const mixedDest = mixedContext.createMediaStreamDestination()
+        mediaRecorder.onstop = async () => {
+            console.log('⏹️ Recording stopped, processing data...');
 
-        mixedContext.createMediaStreamSource(microphone).connect(mixedDest)
-        mixedContext.createMediaStreamSource(media).connect(mixedDest)
+            try {
+                const blob = new Blob(recordedChunks, { type: 'video/webm' });
+                console.log('✅ Blob created:', blob.size, 'bytes');
 
-        const combinedStream = new MediaStream([
-            media.getVideoTracks()[0],
-            mixedDest.stream.getTracks()[0]
-        ])
+                const url = URL.createObjectURL(blob);
+                console.log('🔗 Object URL created:', url);
 
-        recorder = new MediaRecorder(combinedStream, { mimeType: 'video/webm' })
+                // Send to service worker to open video player
+                const response = await chrome.runtime.sendMessage({
+                    action: 'open-tab',
+                    url: url,
+                    source: 'tab-recording',
+                    storage: 'local'
+                });
 
-        // listen for data 
-        recorder.ondataavailable((event) => {
-            console.log('Data Available', event);
-            data.push(event.data)
-        })
+                console.log('📤 Video sent to service worker:', response);
 
-        // listen for when recording stops
-        recorder.onstop = async () => {
-            console.log('Recording stopped');
+            } catch (error) {
+                console.error('❌ Error processing recording:', error);
+            }
+        };
 
-            // sedn the data to the service worker
-            console.log('sending data to service worker');
+        mediaRecorder.start(1000); // Collect data every second
+        console.log('✅ Tab recording started');
 
-            // convert this into a blog and open window
-            const blob = new Blob(data, { type: "video/webm" })
-            const url = URL.createObjectURL(blob)
+    } catch (error) {
+        console.error('❌ Error starting recording:', error);
+    }
+}
 
-            // send message to service worker to open tab
-            console.log('send message to open tab', url);
-            chrome.runtime.sendMessage({
-                type: 'open-tab',
-                url
-            })
-            window.open(url)
+function stopRecording() {
+    console.log('🛑 Stopping recording...');
+
+    if (mediaRecorder && mediaRecorder.state === 'recording') {
+        mediaRecorder.stop();
+
+        // Stop all tracks
+        if (mediaRecorder.stream) {
+            mediaRecorder.stream.getTracks().forEach(track => {
+                track.stop();
+                console.log('🔇 Track stopped:', track.kind);
+            });
         }
 
-        // start recording 
-        recorder.start()
-    } catch (error) {
-        console.log(error);
+        console.log('✅ Tab recording stopped');
+    } else {
+        console.log('⚠️ No active recording to stop');
     }
 }

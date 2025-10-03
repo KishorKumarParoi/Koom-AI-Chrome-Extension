@@ -129,12 +129,15 @@ chrome.tabs.onActivated.addListener(async (activeInfo, tab) => {
     }
 })
 
-const startRecording = async (type) => {
+const startRecording = async (type, webcamEnabled = true) => {
     try {
-        console.log('Start recording:', type);
+        console.log('Start recording:', type, 'Webcam enabled:', webcamEnabled);
         const currentState = await checkRecording(type)
         console.log('Current State: ', currentState);
         await updateRecording(true, type)
+
+        // Save webcam preference for this recording session
+        await chrome.storage.local.set({ currentWebcamEnabled: webcamEnabled });
 
         // set recording icon
         try {
@@ -148,12 +151,20 @@ const startRecording = async (type) => {
 
         if (type === 'tab') {
             await recordTabState(true)
-            await injectCamera()  // ✅ ADDED: Inject camera for tab recording
+
+            // Handle webcam based on user preference
+            if (webcamEnabled) {
+                await injectCamera(); // Show webcam
+                console.log('📹 Webcam overlay enabled for recording');
+            } else {
+                await hideCamera(); // Hide webcam
+                console.log('🙈 Webcam overlay disabled for recording');
+            }
         } else if (type === 'screen') {
             await recordScreen()
         }
 
-        return { success: true, type };
+        return { success: true, type, webcamEnabled };
     } catch (error) {
         console.error('Error starting recording:', error);
         await updateRecording(false, '');
@@ -161,11 +172,14 @@ const startRecording = async (type) => {
     }
 }
 
-
 const stopRecording = async (type) => {
     try {
         console.log('Stop Recording: ', type);
         await updateRecording(false, '')
+
+        // Get the webcam preference for this session
+        const result = await chrome.storage.local.get(['currentWebcamEnabled']);
+        const wasWebcamEnabled = result.currentWebcamEnabled !== undefined ? result.currentWebcamEnabled : true;
 
         // update the icon
         try {
@@ -177,7 +191,18 @@ const stopRecording = async (type) => {
         }
 
         await recordTabState(false)
-        await removeCamera()  // ✅ ADDED: Remove camera when stopping
+
+        // Show webcam again after recording (default behavior)
+        if (wasWebcamEnabled) {
+            await injectCamera(); // Show webcam again
+            console.log('📹 Webcam overlay restored after recording');
+        } else {
+            await removeCamera(); // Remove webcam completely
+            console.log('🗑️ Webcam overlay removed after recording');
+        }
+
+        // Clear session preference
+        await chrome.storage.local.remove(['currentWebcamEnabled']);
 
         return { success: true, type };
     } catch (error) {
@@ -305,38 +330,61 @@ const recordTabState = async (start = true) => {
 
 const openTabWithVideo = async (message) => {
     try {
-        console.log('request to open tab with video', message);
+        console.log('🎬 Opening video tab with:', message);
 
-        // that message will either have a url or base64 encoded video
-        const { url: videoUrl, base64 } = message
+        // Validate message has video data
+        const { url: videoUrl, base64 } = message;
         if (!videoUrl && !base64) {
+            console.error('❌ No video URL or base64 provided');
             throw new Error('No video URL or base64 provided');
         }
 
-        // open tab
-        const url = chrome.runtime.getURL('video.html')
-        const newTab = await chrome.tabs.create({ url })
+        // Create video player tab
+        const videoPlayerUrl = chrome.runtime.getURL('video.html');
+        console.log('📄 Creating video tab with URL:', videoPlayerUrl);
 
-        console.log('Video tab created:', newTab.id);
-
-        // ✅ FIXED: Wait for tab to load before sending message
-        await waitForTabLoad(newTab.id);
-
-        // send message to tab 
-        const response = await chrome.tabs.sendMessage(newTab.id, {
-            type: 'play-video',
-            videoUrl,
-            base64
+        const newTab = await chrome.tabs.create({
+            url: videoPlayerUrl,
+            active: true
         });
 
-        console.log('Video message sent:', response);
+        console.log('✅ Video tab created with ID:', newTab.id);
+
+        // Wait for tab to load properly
+        console.log('⏳ Waiting for tab to load...');
+        await waitForTabLoad(newTab.id);
+
+        // Send video data to the tab
+        console.log('📤 Sending video data to tab...');
+        const response = await chrome.tabs.sendMessage(newTab.id, {
+            type: 'play-video',
+            videoUrl: videoUrl,
+            base64: base64,
+            storage: message.storage || 'local',
+            source: message.source || 'recording'
+        });
+
+        console.log('✅ Video data sent successfully:', response);
         return { success: true, tabId: newTab.id };
 
     } catch (error) {
-        console.error('Error opening video tab:', error);
+        console.error('❌ Error opening video tab:', error);
+
+        // Show error feedback
+        try {
+            await chrome.action.setBadgeText({ text: "✗" });
+            await chrome.action.setBadgeBackgroundColor({ color: "#FF0000" });
+
+            setTimeout(async () => {
+                await chrome.action.setBadgeText({ text: "" });
+            }, 3000);
+        } catch (badgeError) {
+            console.error('Error setting badge:', badgeError);
+        }
+
         throw error;
     }
-}
+};
 
 // add listener for messages 
 chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
@@ -350,8 +398,8 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     sendResponse({ success: true, ...openResult });
                     break;
                 case 'start-recording':
-                    console.log('start recording', request.type);
-                    const startResult = await startRecording(request.type);
+                    console.log('start recording', request.type, 'webcam:', request.webcamEnabled);
+                    const startResult = await startRecording(request.type, request.webcamEnabled);
                     sendResponse({ success: true, ...startResult });
                     break;
                 case 'stop-recording':
@@ -362,10 +410,12 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
                     break;
                 case 'get-recording-state':
                     const [isRecording, recordingType] = await checkRecording();
+                    const webcamResult = await chrome.storage.local.get(['currentWebcamEnabled']);
                     sendResponse({
                         success: true,
                         isRecording,
-                        recordingType
+                        recordingType,
+                        webcamEnabled: webcamResult.currentWebcamEnabled !== undefined ? webcamResult.currentWebcamEnabled : true
                     });
                     break;
                 case 'desktop-record-ready':
