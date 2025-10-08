@@ -19,7 +19,7 @@ const runCode = async () => {
     }
 
     if (permissions.state === 'denied') {
-        alert('Camera Persmissions Denied!')
+        alert('Camera Permissions Denied!')
         return
     }
 
@@ -51,5 +51,3 @@ const runCode = async () => {
 }
 
 runCode()
-
-// 

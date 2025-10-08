@@ -8,102 +8,144 @@
             width: 320px;
             padding: 20px;
             font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            margin: 0;
+        }
+
+        h2 {
+            margin: 0 0 20px 0;
+            text-align: center;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
         }
 
         .button {
+            display: block;
             width: 100%;
             padding: 12px;
-            margin: 8px 0;
+            margin: 10px 0;
             border: none;
-            border-radius: 6px;
-            cursor: pointer;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
             font-size: 16px;
-            font-weight: bold;
+            cursor: pointer;
             transition: all 0.3s ease;
+            text-align: center;
+            backdrop-filter: blur(10px);
         }
 
-        .record-btn {
-            background: #4CAF50;
-            color: white;
+        .button:hover {
+            background: rgba(255, 255, 255, 0.3);
+            transform: translateY(-2px);
         }
 
-        .record-btn:hover {
-            background: #45a049;
+        .button:active {
+            transform: translateY(0);
         }
 
-        .stop-btn {
-            background: #f44336;
-            color: white;
+        .button.active {
+            background: rgba(255, 255, 255, 0.4);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
         }
 
-        .stop-btn:hover {
-            background: #da190b;
+        .webcam-options {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 255, 255, 0.2);
         }
 
-        .camera-btn {
-            background: #2196F3;
-            color: white;
+        .webcam-options h3 {
+            margin: 0 0 10px 0;
             font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .webcam-buttons {
+            display: flex;
+            gap: 10px;
+        }
+
+        .webcam-buttons .button {
+            margin: 0;
+            flex: 1;
             padding: 8px;
+            font-size: 14px;
         }
 
-        .camera-btn:hover {
-            background: #1976D2;
+        .live-camera-controls {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(255, 0, 0, 0.1);
+            border-radius: 8px;
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            display: none;
         }
 
-        .camera-btn.active {
-            background: #FF9800;
+        .live-camera-controls h3 {
+            margin: 0 0 10px 0;
+            font-size: 14px;
+            color: #ffcccc;
         }
 
         .status {
             text-align: center;
+            padding: 10px;
             margin: 10px 0;
-            font-weight: bold;
-        }
-
-        .recording {
-            color: #f44336;
-        }
-
-        .idle {
-            color: #4CAF50;
-        }
-
-        .section {
-            border: 1px solid #ddd;
-            border-radius: 8px;
-            padding: 15px;
-            margin: 10px 0;
-            background: #f9f9f9;
-        }
-
-        .section-title {
+            border-radius: 6px;
             font-size: 14px;
-            font-weight: bold;
-            margin-bottom: 10px;
-            color: #333;
         }
 
-        .webcam-options {
-            display: flex;
-            gap: 8px;
-            margin-bottom: 10px;
+        .status.ready {
+            background: rgba(0, 255, 0, 0.2);
+            border: 1px solid rgba(0, 255, 0, 0.3);
         }
 
-        .webcam-options .camera-btn {
-            flex: 1;
+        .status.loading {
+            background: rgba(255, 255, 0, 0.2);
+            border: 1px solid rgba(255, 255, 0, 0.3);
         }
 
-        .setting-label {
-            font-size: 12px;
-            color: #666;
-            margin-bottom: 5px;
+        .status.recording {
+            background: rgba(255, 0, 0, 0.2);
+            border: 1px solid rgba(255, 0, 0, 0.3);
+            animation: pulse 1s infinite;
         }
 
-        .webcam-preview {
-            font-size: 12px;
-            color: #888;
-            font-style: italic;
+        .status.error {
+            background: rgba(255, 0, 0, 0.3);
+            border: 1px solid rgba(255, 0, 0, 0.5);
+        }
+
+        .status.success {
+            background: rgba(0, 255, 0, 0.3);
+            border: 1px solid rgba(0, 255, 0, 0.5);
+        }
+
+        @keyframes pulse {
+            0% {
+                opacity: 1;
+            }
+
+            50% {
+                opacity: 0.7;
+            }
+
+            100% {
+                opacity: 1;
+            }
+        }
+
+        #stopRecording {
+            display: none;
+            background: rgba(255, 0, 0, 0.3);
+            border: 2px solid rgba(255, 0, 0, 0.5);
+        }
+
+        #stopRecording:hover {
+            background: rgba(255, 0, 0, 0.4);
         }
     </style>
 </head>
@@ -111,33 +153,26 @@
 <body>
     <h2>🎬 Koom AI Recorder</h2>
 
-    <div id="status" class="status idle">Ready to Record</div>
+    <div id="status" class="status ready">Ready to record</div>
 
-    <!-- Recording Controls -->
-    <div class="section">
-        <div class="section-title">📹 Recording Options</div>
+    <button id="recordTab" class="button">📹 Record Tab</button>
+    <button id="recordScreen" class="button">🖥️ Record Screen</button>
+    <button id="stopRecording" class="button">⏹️ Stop Recording</button>
 
-        <!-- Webcam Settings -->
-        <div class="setting-label">Webcam Overlay During Recording:</div>
-        <div class="webcam-options">
-            <button id="webcamShow" class="button camera-btn active">👁️ Show</button>
-            <button id="webcamHide" class="button camera-btn">🙈 Hide</button>
+    <div id="webcamOptions" class="webcam-options">
+        <h3>📷 Webcam Overlay</h3>
+        <div class="webcam-buttons">
+            <button id="webcamShow" class="button active">Show</button>
+            <button id="webcamHide" class="button">Hide</button>
         </div>
-        <div id="webcamPreview" class="webcam-preview">✅ Webcam will be visible during recording</div>
-
-        <!-- Record Buttons -->
-        <button id="recordTab" class="button record-btn">📱 Record Tab</button>
-        <button id="recordScreen" class="button record-btn">🖥️ Record Screen</button>
-        <button id="stopRecording" class="button stop-btn" style="display: none;">⏹️ Stop Recording</button>
     </div>
 
-    <!-- Live Camera Controls (only shown during recording) -->
-    <div id="liveControls" class="section" style="display: none;">
-        <div class="section-title">🎥 Live Camera Controls</div>
-        <div class="webcam-options">
-            <button id="toggleCameraLive" class="button camera-btn">🔄 Toggle</button>
-            <button id="hideCameraLive" class="button camera-btn">🙈 Hide</button>
-            <button id="showCameraLive" class="button camera-btn">👁️ Show</button>
+    <div id="liveCameraControls" class="live-camera-controls">
+        <h3>🔴 Live Camera Controls</h3>
+        <div class="webcam-buttons">
+            <button id="liveCameraToggle" class="button">Toggle</button>
+            <button id="liveCameraShow" class="button">Show</button>
+            <button id="liveCameraHide" class="button">Hide</button>
         </div>
     </div>
 
