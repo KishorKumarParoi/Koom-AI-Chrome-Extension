@@ -1,38 +1,34 @@
-// Get DOM element references
-const recordTabBtn = document.getElementById("recordTab");
-const recordScreenBtn = document.getElementById("recordScreen");
-const stopRecordingBtn = document.getElementById("stopRecording");
-const statusDiv = document.getElementById("status");
+const recordTab = document.querySelector("#tab");
+const recordScreen = document.querySelector("#screen");
 
-// Webcam option buttons
-const webcamShowBtn = document.getElementById("webcamShow");
-const webcamHideBtn = document.getElementById("webcamHide");
-const webcamPreview = document.getElementById("webcamPreview");
-
-// ✅ ADDED: Live camera control buttons (during recording)
-const liveCameraToggleBtn = document.getElementById("liveCameraToggle");
-const liveCameraShowBtn = document.getElementById("liveCameraShow");
-const liveCameraHideBtn = document.getElementById("liveCameraHide");
-
-// ✅ ADDED: State management variables
-let currentRecordingState = {
-  isRecording: false,
-  recordingType: "",
-  webcamEnabled: true,
-};
-
-// inject the content script into the current page
 const injectCamera = async () => {
+  // inject the content script into the current page
   const tab = await chrome.tabs.query({ active: true, currentWindow: true });
   if (!tab) return;
 
   const tabId = tab[0].id;
   console.log("inject into tab", tabId);
-  console.log("tab: ", tab);
-
   await chrome.scripting.executeScript({
     // content.js is the file that will be injected
     files: ["content.js"],
+    target: { tabId },
+  });
+};
+
+const removeCamera = async () => {
+  // inject the content script into the current page
+  const tab = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tab) return;
+
+  const tabId = tab[0].id;
+  console.log("inject into tab", tabId);
+  await chrome.scripting.executeScript({
+    // content.js is the file that will be injected
+    func: () => {
+      const camera = document.querySelector("#rusty-camera");
+      if (!camera) return;
+      document.querySelector("#rusty-camera").style.display = "none";
+    },
     target: { tabId },
   });
 };
@@ -41,55 +37,55 @@ const injectCamera = async () => {
 const checkRecording = async () => {
   const recording = await chrome.storage.local.get(["recording", "type"]);
   const recordingStatus = recording.recording || false;
-  const recordingType = recording.type || null;
+  const recordingType = recording.type || "";
+  console.log("recording status", recordingStatus, recordingType);
   return [recordingStatus, recordingType];
 };
 
 const init = async () => {
-  const [recordingStatus, recordingType] = await checkRecording();
-  console.log("recording status: ", recordingStatus, recordingType);
+  const recordingState = await checkRecording();
 
-  if (recordingStatus) {
-    if (recordingType === "tab") {
-      recordTabBtn.innerText = "⏹️ Stop Recording";
-    } else if (recordingType === "screen") {
-      recordScreenBtn.innerText = "⏹️ Stop Recording";
+  console.log("recording state", recordingState);
+
+  if (recordingState[0] === true) {
+    if (recordingState[1] === "tab") {
+      recordTab.innerText = "Stop Recording";
+    } else {
+      recordScreen.innerText = "Stop Recording";
     }
   }
 
   const updateRecording = async (type) => {
-    console.log("Updated recording of type:", type);
+    console.log("start recording", type);
 
-    // send message to service worker to start recording
-    if (recordingStatus) {
-      chrome.runtime.sendMessage({ action: "stop-recording" });
+    const recordingState = await checkRecording();
+
+    if (recordingState[0] === true) {
+      // stop recording
+      chrome.runtime.sendMessage({ type: "stop-recording" });
+      removeCamera();
     } else {
+      // send message to service worker to start recording
       chrome.runtime.sendMessage({
-        action: "start-recording",
-        type: type,
+        type: "start-recording",
+        recordingType: type,
       });
       injectCamera();
     }
 
+    // close popup
     window.close();
   };
 
-  recordTabBtn.addEventListener("click", async () => {
-    console.log("Record tab clicked!");
+  recordTab.addEventListener("click", async () => {
+    console.log("updateRecording tab clicked");
     updateRecording("tab");
   });
 
-  recordScreenBtn.addEventListener("click", async () => {
-    console.log("Record screen clicked!");
+  recordScreen.addEventListener("click", async () => {
+    console.log("updateRecording screen clicked");
     updateRecording("screen");
-  });
-
-  stopRecordingBtn.addEventListener("click", async () => {
-    chrome.runtime.sendMessage({ action: "stop-recording" });
-    console.log("Stop recording clicked!");
   });
 };
 
-checkRecording().then((res) => {
-  init();
-});
+init();

@@ -1,182 +1,26 @@
-<!DOCTYPE html>
-<html>
+<style>
+  body {
+    width: 270px;
+    height: 100px;
+    background-color: red;
+    margin: 0;
+    padding: 0;
+  }
+  div {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+  }
+</style>
 
-<head>
-    <meta charset="utf-8">
-    <style>
-        body {
-            width: 320px;
-            padding: 20px;
-            font-family: Arial, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            margin: 0;
-        }
+<div>
+  <h1>Record options</h1>
 
-        h2 {
-            margin: 0 0 20px 0;
-            text-align: center;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
+  <div>
+    <button id="tab">Record Tab</button>
+    <button id="screen">Record Screen</button>
+  </div>
+</div>
 
-        .button {
-            display: block;
-            width: 100%;
-            padding: 12px;
-            margin: 10px 0;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            font-size: 16px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            text-align: center;
-            backdrop-filter: blur(10px);
-        }
-
-        .button:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .button:active {
-            transform: translateY(0);
-        }
-
-        .button.active {
-            background: rgba(255, 255, 255, 0.4);
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.3);
-        }
-
-        .webcam-options {
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
-            border: 1px solid rgba(255, 255, 255, 0.2);
-        }
-
-        .webcam-options h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            opacity: 0.9;
-        }
-
-        .webcam-buttons {
-            display: flex;
-            gap: 10px;
-        }
-
-        .webcam-buttons .button {
-            margin: 0;
-            flex: 1;
-            padding: 8px;
-            font-size: 14px;
-        }
-
-        .live-camera-controls {
-            margin: 15px 0;
-            padding: 15px;
-            background: rgba(255, 0, 0, 0.1);
-            border-radius: 8px;
-            border: 1px solid rgba(255, 0, 0, 0.3);
-            display: none;
-        }
-
-        .live-camera-controls h3 {
-            margin: 0 0 10px 0;
-            font-size: 14px;
-            color: #ffcccc;
-        }
-
-        .status {
-            text-align: center;
-            padding: 10px;
-            margin: 10px 0;
-            border-radius: 6px;
-            font-size: 14px;
-        }
-
-        .status.ready {
-            background: rgba(0, 255, 0, 0.2);
-            border: 1px solid rgba(0, 255, 0, 0.3);
-        }
-
-        .status.loading {
-            background: rgba(255, 255, 0, 0.2);
-            border: 1px solid rgba(255, 255, 0, 0.3);
-        }
-
-        .status.recording {
-            background: rgba(255, 0, 0, 0.2);
-            border: 1px solid rgba(255, 0, 0, 0.3);
-            animation: pulse 1s infinite;
-        }
-
-        .status.error {
-            background: rgba(255, 0, 0, 0.3);
-            border: 1px solid rgba(255, 0, 0, 0.5);
-        }
-
-        .status.success {
-            background: rgba(0, 255, 0, 0.3);
-            border: 1px solid rgba(0, 255, 0, 0.5);
-        }
-
-        @keyframes pulse {
-            0% {
-                opacity: 1;
-            }
-
-            50% {
-                opacity: 0.7;
-            }
-
-            100% {
-                opacity: 1;
-            }
-        }
-
-        #stopRecording {
-            display: none;
-            background: rgba(255, 0, 0, 0.3);
-            border: 2px solid rgba(255, 0, 0, 0.5);
-        }
-
-        #stopRecording:hover {
-            background: rgba(255, 0, 0, 0.4);
-        }
-    </style>
-</head>
-
-<body>
-    <h2>🎬 Koom AI Recorder</h2>
-
-    <div id="status" class="status ready">Ready to record</div>
-
-    <button id="recordTab" class="button">📹 Record Tab</button>
-    <button id="recordScreen" class="button">🖥️ Record Screen</button>
-    <button id="stopRecording" class="button">⏹️ Stop Recording</button>
-
-    <div id="webcamOptions" class="webcam-options">
-        <h3>📷 Webcam Overlay</h3>
-        <div class="webcam-buttons">
-            <button id="webcamShow" class="button active">Show</button>
-            <button id="webcamHide" class="button">Hide</button>
-        </div>
-    </div>
-
-    <div id="liveCameraControls" class="live-camera-controls">
-        <h3>🔴 Live Camera Controls</h3>
-        <div class="webcam-buttons">
-            <button id="liveCameraToggle" class="button">Toggle</button>
-            <button id="liveCameraShow" class="button">Show</button>
-            <button id="liveCameraHide" class="button">Hide</button>
-        </div>
-    </div>
-
-    <script src="popup.js"></script>
-</body>
-
-</html>
+<script src="popup.js"></script>
