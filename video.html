@@ -1,107 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
-
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Video Player</title>
+
     <style>
-        body {
-            margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            min-height: 100vh;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            font-family: Arial, sans-serif;
-        }
+      body {
+        margin: 0;
+        padding: 0;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 100vh;
 
-        .container {
-            text-align: center;
-            max-width: 90vw;
-        }
+        background-color: #dfdbe5;
+        background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='100' height='199' viewBox='0 0 100 199'%3E%3Cg fill='%239C92AC' fill-opacity='0.4'%3E%3Cpath d='M0 199V0h1v1.99L100 199h-1.12L1 4.22V199H0zM100 2h-.12l-1-2H100v2z'%3E%3C/path%3E%3C/g%3E%3C/svg%3E");
+      }
 
-        h1 {
-            color: white;
-            margin-bottom: 20px;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-
-        #recorder-video {
-            width: 80vw;
-            max-width: 1200px;
-            aspect-ratio: 16/9;
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-            background: black;
-        }
-
-        .controls {
-            margin-top: 20px;
-            display: flex;
-            gap: 15px;
-            justify-content: center;
-            flex-wrap: wrap;
-        }
-
-        .btn {
-            padding: 10px 20px;
-            border: none;
-            border-radius: 8px;
-            background: rgba(255, 255, 255, 0.2);
-            color: white;
-            cursor: pointer;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            backdrop-filter: blur(10px);
-        }
-
-        .btn:hover {
-            background: rgba(255, 255, 255, 0.3);
-            transform: translateY(-2px);
-        }
-
-        .status {
-            color: white;
-            margin: 15px 0;
-            font-size: 16px;
-        }
-
-        .loading {
-            color: #ffd700;
-        }
-
-        .error {
-            color: #ff6b6b;
-        }
-
-        .success {
-            color: #51cf66;
-        }
+      #recorded-video {
+        aspect-ratio: 16/9;
+        width: 70vw;
+        border: none;
+        border-radius: 10px;
+        overflow: hidden;
+        background: black;
+      }
     </style>
-</head>
-
-<body>
-    <div class="container">
-        <h1>🎬 Koom AI Video Player</h1>
-
-        <div id="status" class="status">Loading video...</div>
-
-        <video id="recorder-video" controls preload="auto">
-            Your browser does not support the video tag.
-        </video>
-
-        <div class="controls">
-            <button class="btn" onclick="downloadVideo()">📥 Download</button>
-            <button class="btn" onclick="restartVideo()">🔄 Restart</button>
-            <button class="btn" onclick="toggleFullscreen()">🔍 Fullscreen</button>
-        </div>
-    </div>
+  </head>
+  <body>
+    <video id="recorded-video" controls></video>
 
     <script src="video.js"></script>
-</body>
-
+  </body>
 </html>
