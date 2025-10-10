@@ -77,7 +77,7 @@ const startRecording = async (focusedTabId) => {
 
       // get the microphone stream
       const microphone = await navigator.mediaDevices.getUserMedia({
-        audio: { echoCancellation: false },
+        audio: { echoCancellation: true },
       });
 
       // check that the microphone stream has audio tracks
@@ -85,6 +85,7 @@ const startRecording = async (focusedTabId) => {
         const combinedStream = new MediaStream([
           stream.getVideoTracks()[0],
           microphone.getAudioTracks()[0],
+          stream.getAudioTracks()[0],
         ]);
 
         console.log("combined stream", combinedStream);
@@ -111,6 +112,10 @@ const startRecording = async (focusedTabId) => {
           chrome.runtime.sendMessage({ type: "open-tab", base64 });
 
           data = [];
+
+          setTimeout(() => {
+            window.close();
+          }, 500);
         };
 
         // start recording

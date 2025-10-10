@@ -58,7 +58,7 @@ async function startRecording(streamId) {
 
     // get microphone audio
     const microphone = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false },
+      audio: { echoCancellation: true },
     });
     // combine the streams
     const mixedContext = new AudioContext();
