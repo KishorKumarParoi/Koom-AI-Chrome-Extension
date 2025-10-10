@@ -1,5 +1,6 @@
 const recordTab = document.querySelector("#tab");
 const recordScreen = document.querySelector("#screen");
+const screenshot = document.getElementById("screenshot");
 
 const injectCamera = async () => {
   // inject the content script into the current page
@@ -85,6 +86,14 @@ const init = async () => {
   recordScreen.addEventListener("click", async () => {
     console.log("updateRecording screen clicked");
     updateRecording("screen");
+  });
+
+  screenshot.addEventListener("click", async () => {
+    console.log("screenshot clicked");
+    // send message to service worker to take screenshot
+    chrome.runtime.sendMessage({ type: "take-screenshot" });
+    // close popup
+    window.close();
   });
 };
 
