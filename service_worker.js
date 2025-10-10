@@ -200,6 +200,37 @@ const openTabWithVideo = async (message) => {
   }, 500);
 };
 
+async function takeScreenshot() {
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  if (!tabs || tabs.length === 0) return;
+  const tab = tabs[0];
+
+  // capture the visible area of the tab
+  const imageUri = await chrome.tabs.captureVisibleTab(tab.windowId, {
+    format: "png",
+    quality: 100,
+  });
+
+  console.log("Screenshot captured, size", imageUri.length);
+
+  const now = new Date();
+  const timestamp = now
+    .toISOString()
+    .replace(/T/, "_")
+    .replace(/:/g, "-")
+    .replace(/\..+/, "");
+
+  const filename = `koom-screenshot-${timestamp}.png`;
+
+  const downloadId = await chrome.downloads.download({
+    url: imageUri,
+    filename: filename,
+    saveAs: true,
+  });
+
+  console.log("Download started with ID:", downloadId);
+}
+
 // add listender for messages
 chrome.runtime.onMessage.addListener(function (request, sender) {
   console.log("message received", request, sender);
@@ -213,6 +244,9 @@ chrome.runtime.onMessage.addListener(function (request, sender) {
       break;
     case "stop-recording":
       stopRecording();
+      break;
+    case "take-screenshot":
+      takeScreenshot();
       break;
     default:
       console.log("default");
