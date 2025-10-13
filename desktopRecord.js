@@ -1,133 +1,142 @@
-const convertBlobToBase64 = (blob) => {
-  return new Promise((resolve) => {
-    const reader = new FileReader();
-    reader.readAsDataURL(blob);
-    reader.onloadend = () => {
-      const base64data = reader.result;
-      resolve(base64data);
-    };
-  });
-};
+console.log("🖥️ Desktop Record script loaded");
 
-const fetchBlob = async (url) => {
-  const response = await fetch(url);
-  const blob = await response.blob();
-  const base64 = await convertBlobToBase64(blob);
-  return base64;
-};
+let recorder;
+let data = [];
 
-// listen for messages from the service worker - start recording  - stop recording
-chrome.runtime.onMessage.addListener(function (request, sender) {
-  console.log("message received", request, sender);
+// Listen for messages
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  console.log("[desktop-record] message received", message);
 
-  switch (request.type) {
-    case "start-recording":
-      startRecording(request.focusedTabId);
+  // ✅ Check for target to avoid conflicts
+  if (message.target && message.target !== "offscreen-desktop") {
+    return;
+  }
+
+  switch (message.type) {
+    case "start-screen-recording":
+      console.log("[desktop-record] Starting screen recording");
+      startScreenRecording();
       break;
-    case "stop-recording":
-      stopRecording();
+    case "stop-screen-recording":
+      console.log("[desktop-record] Stopping screen recording");
+      stopScreenRecording();
       break;
     default:
-      console.log("default");
+      console.log("[desktop-record] Unknown message type:", message.type);
   }
 
   return true;
 });
 
-let recorder;
-let data = [];
+async function startScreenRecording() {
+  try {
+    console.log("[desktop-record] Requesting screen capture...");
 
-const stopRecording = () => {
-  console.log("stop recording");
-  if (recorder?.state === "recording") {
-    recorder.stop();
-    // stop all streams
-    recorder.stream.getTracks().forEach((t) => t.stop());
-  }
-};
+    // ✅ Use getDisplayMedia instead of desktopCapture
+    const stream = await navigator.mediaDevices.getDisplayMedia({
+      video: {
+        displaySurface: "monitor",
+        width: { ideal: 1920 },
+        height: { ideal: 1080 },
+      },
+      audio: true,
+    });
 
-const startRecording = async (focusedTabId) => {
-  //...
-  // use desktopCapture to get the screen stream
-  chrome.desktopCapture.chooseDesktopMedia(
-    ["screen", "window"],
-    async function (streamId) {
-      if (streamId === null) {
-        return;
-      }
-      // have stream id
-      console.log("stream id from desktop capture", streamId);
+    console.log("[desktop-record] ✅ Screen capture granted");
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        audio: {
-          mandatory: {
-            chromeMediaSource: "desktop",
-            chromeMediaSourceId: streamId,
-          },
-        },
-        video: {
-          mandatory: {
-            chromeMediaSource: "desktop",
-            chromeMediaSourceId: streamId,
-          },
-        },
-      });
-
-      console.log("stream from desktop capture", stream);
-
-      // get the microphone stream
-      const microphone = await navigator.mediaDevices.getUserMedia({
+    // Get microphone
+    let micStream = null;
+    try {
+      micStream = await navigator.mediaDevices.getUserMedia({
         audio: { echoCancellation: true },
       });
-
-      // check that the microphone stream has audio tracks
-      if (microphone.getAudioTracks().length !== 0) {
-        const combinedStream = new MediaStream([
-          stream.getVideoTracks()[0],
-          microphone.getAudioTracks()[0],
-          stream.getAudioTracks()[0],
-        ]);
-
-        console.log("combined stream", combinedStream);
-
-        recorder = new MediaRecorder(combinedStream, {
-          mimeType: "video/webm",
-        });
-
-        // listen for data
-        recorder.ondataavailable = (event) => {
-          console.log("data available", event);
-          data.push(event.data);
-        };
-
-        // listen for when recording stops
-        recorder.onstop = async () => {
-          console.log("recording stopped");
-          // send the data to the service worker
-          const blobFile = new Blob(data, { type: "video/webm" });
-          const base64 = await fetchBlob(URL.createObjectURL(blobFile));
-
-          // send message to service worker to open tab
-          console.log("send message to open tab", base64);
-          chrome.runtime.sendMessage({ type: "open-tab", base64 });
-
-          data = [];
-
-          setTimeout(() => {
-            window.close();
-          }, 500);
-        };
-
-        // start recording
-        recorder.start();
-
-        // set focus back to the previous tab
-        if (focusedTabId) {
-          chrome.tabs.update(focusedTabId, { active: true });
-        }
-      }
-
-      return;
+      console.log("[desktop-record] ✅ Microphone access granted");
+    } catch (error) {
+      console.warn(
+        "[desktop-record] ⚠️ Microphone not available:",
+        error.message
+      );
     }
-  );
-};
+
+    // Combine streams
+    let combinedStream = stream;
+
+    if (micStream) {
+      const audioContext = new AudioContext();
+      const dest = audioContext.createMediaStreamDestination();
+
+      // Mix audio from screen and microphone
+      if (stream.getAudioTracks().length > 0) {
+        audioContext.createMediaStreamSource(stream).connect(dest);
+      }
+      audioContext.createMediaStreamSource(micStream).connect(dest);
+
+      const videoTrack = stream.getVideoTracks()[0];
+      const audioTrack = dest.stream.getAudioTracks()[0];
+
+      combinedStream = new MediaStream([videoTrack, audioTrack]);
+    }
+
+    // Create recorder
+    recorder = new MediaRecorder(combinedStream, {
+      mimeType: "video/webm;codecs=vp9",
+    });
+
+    recorder.ondataavailable = (event) => {
+      if (event.data.size > 0) {
+        data.push(event.data);
+        console.log(
+          "[desktop-record] Data chunk received:",
+          event.data.size,
+          "bytes"
+        );
+      }
+    };
+
+    recorder.onstop = async () => {
+      console.log("[desktop-record] Recording stopped");
+
+      // Stop all tracks
+      combinedStream.getTracks().forEach((track) => {
+        track.stop();
+        console.log("[desktop-record] Stopped track:", track.kind);
+      });
+
+      // Create blob and URL
+      const blob = new Blob(data, { type: "video/webm" });
+      const url = URL.createObjectURL(blob);
+
+      console.log("[desktop-record] Video blob created:", blob.size, "bytes");
+
+      // Send message to open new tab with video
+      chrome.runtime.sendMessage({
+        type: "open-tab",
+        url: url,
+      });
+
+      // Reset
+      data = [];
+    };
+
+    // Start recording
+    recorder.start();
+    console.log("[desktop-record] ✅ Recording started");
+  } catch (error) {
+    console.error("[desktop-record] ❌ Error starting recording:", error);
+
+    // Notify user
+    chrome.runtime.sendMessage({
+      type: "recording-error",
+      error: error.message,
+    });
+  }
+}
+
+function stopScreenRecording() {
+  if (recorder && recorder.state === "recording") {
+    recorder.stop();
+    console.log("[desktop-record] ✅ Recorder stopped");
+  } else {
+    console.warn("[desktop-record] ⚠️ No active recording to stop");
+  }
+}
