@@ -63,10 +63,10 @@ downloadBtn.addEventListener("click", () => {
 
 // Open Next.js Dashboard
 webAppBtn.addEventListener("click", () => {
-  window.open("http://localhost:3000/dashboard", "_blank");
+  window.open("https://koom-ai-web.onrender.com/dashboard", "_blank");
 });
 
-// Upload to KoomAI Express Backend (:5001)
+// Upload to KoomAI Cloud Engine (Render API with localhost fallback)
 uploadBtn.addEventListener("click", async () => {
   if (!currentVideoBlobUrl) {
     alert("No video stream found to upload.");
@@ -77,7 +77,7 @@ uploadBtn.addEventListener("click", async () => {
   uploadBtn.innerHTML = `<span>⏳ Uploading to KoomAI Cloud...</span>`;
   toast.className = "";
   toast.style.display = "block";
-  toast.textContent = "Connecting to KoomAI Media Engine on port 5001...";
+  toast.textContent = "Connecting to KoomAI Real-Time Media Engine...";
 
   try {
     const response = await fetch(currentVideoBlobUrl);
@@ -91,28 +91,44 @@ uploadBtn.addEventListener("click", async () => {
       const base64Data = reader.result.split(",")[1];
       const filename = `chrome-ext-${Date.now()}.webm`;
 
-      try {
-        const uploadRes = await fetch("http://localhost:5001/api/upload", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            filename,
-            userId: "chrome-extension-user",
-            base64Data,
-          }),
-        });
+      // Smart target discovery: try production Render API first, then local fallback
+      const uploadTargets = [
+        "https://koom-ai-express.onrender.com/api/upload",
+        "http://localhost:5001/api/upload",
+      ];
 
-        const data = await uploadRes.json();
-        if (uploadRes.ok) {
-          toast.className = "success";
-          toast.innerHTML = `✅ Successfully uploaded to KoomAI Cloud (File: <strong>${filename}</strong>)! AI Whisper transcription queued. <a href="http://localhost:3000/dashboard" target="_blank" style="color: #10b981; font-weight: bold; text-decoration: underline; margin-left: 8px;">View in Cockpit</a>`;
-          uploadBtn.innerHTML = `<span>✅ Uploaded!</span>`;
-        } else {
-          throw new Error(data.error || "Upload failed");
+      let lastError = null;
+      let uploadedSuccessfully = false;
+
+      for (const targetUrl of uploadTargets) {
+        try {
+          console.log(`[Upload] Attempting cloud dispatch to ${targetUrl}...`);
+          const uploadRes = await fetch(targetUrl, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              filename,
+              userId: "chrome-extension-user",
+              base64Data,
+            }),
+          });
+
+          if (uploadRes.ok) {
+            uploadedSuccessfully = true;
+            toast.className = "success";
+            toast.innerHTML = `✅ Successfully uploaded to KoomAI Cloud (File: <strong>${filename}</strong>)! AI Whisper transcription queued. <a href="https://koom-ai-web.onrender.com" target="_blank" style="color: #10b981; font-weight: bold; text-decoration: underline; margin-left: 8px;">View in Cockpit</a>`;
+            uploadBtn.innerHTML = `<span>✅ Uploaded!</span>`;
+            break;
+          }
+        } catch (err) {
+          lastError = err;
+          console.warn(`[Upload Warning] Failed to upload to ${targetUrl}:`, err.message);
         }
-      } catch (err) {
+      }
+
+      if (!uploadedSuccessfully) {
         toast.className = "error";
-        toast.innerHTML = `⚠️ Cloud upload failed: ${err.message}. Ensure KoomAI Express backend is running on <code>http://localhost:5001</code>.`;
+        toast.innerHTML = `⚠️ Cloud upload failed: ${lastError?.message || "All endpoints unreachable"}.`;
         uploadBtn.disabled = false;
         uploadBtn.innerHTML = `<span>🚀 Retry Upload</span>`;
       }
@@ -124,3 +140,4 @@ uploadBtn.addEventListener("click", async () => {
     uploadBtn.innerHTML = `<span>🚀 Upload to KoomAI Cloud</span>`;
   }
 });
+
