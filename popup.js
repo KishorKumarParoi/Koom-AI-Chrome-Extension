@@ -230,8 +230,125 @@ const init = async () => {
     chrome.runtime.sendMessage({ type: "take-screenshot" });
     window.close();
   });
+
+  // ========================================
+  // POMODORO, TAB TRACKER & MEDITATION
+  // ========================================
+  const tabNavRecord = document.getElementById("tabNavRecord");
+  const tabNavPomo = document.getElementById("tabNavPomo");
+  const tabNavZen = document.getElementById("tabNavZen");
+  const panelRecord = document.getElementById("panelRecord");
+  const panelPomo = document.getElementById("panelPomo");
+  const panelZen = document.getElementById("panelZen");
+
+  function switchTab(activeBtn, activePanel) {
+    [tabNavRecord, tabNavPomo, tabNavZen].forEach(b => b && b.classList.remove("active"));
+    [panelRecord, panelPomo, panelZen].forEach(p => p && p.classList.remove("active"));
+    if (activeBtn) activeBtn.classList.add("active");
+    if (activePanel) activePanel.classList.add("active");
+  }
+
+  if (tabNavRecord) tabNavRecord.onclick = () => switchTab(tabNavRecord, panelRecord);
+  if (tabNavPomo) tabNavPomo.onclick = () => {
+    switchTab(tabNavPomo, panelPomo);
+    updateTabCount();
+  };
+  if (tabNavZen) tabNavZen.onclick = () => switchTab(tabNavZen, panelZen);
+
+  function updateTabCount() {
+    if (typeof chrome !== "undefined" && chrome?.tabs?.query) {
+      chrome.tabs.query({}, (tabs) => {
+        const countElem = document.getElementById("openTabsCount");
+        if (countElem && tabs) countElem.innerText = `${tabs.length} tabs`;
+      });
+    }
+  }
+  updateTabCount();
+
+  let pomoSeconds = 25 * 60;
+  let pomoInterval = null;
+  const pomoTimeElem = document.getElementById("pomoTime");
+
+  function updatePomoDisplay() {
+    const mins = Math.floor(pomoSeconds / 60);
+    const secs = pomoSeconds % 60;
+    if (pomoTimeElem) {
+      pomoTimeElem.innerText = `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+    }
+  }
+
+  const btnPomoStart = document.getElementById("btnPomoStart");
+  const btnPomoPause = document.getElementById("btnPomoPause");
+  const btnPomoReset = document.getElementById("btnPomoReset");
+
+  if (btnPomoStart) {
+    btnPomoStart.onclick = () => {
+      if (pomoInterval) clearInterval(pomoInterval);
+      pomoInterval = setInterval(() => {
+        if (pomoSeconds > 0) {
+          pomoSeconds--;
+          updatePomoDisplay();
+        } else {
+          clearInterval(pomoInterval);
+          alert("🎉 Pomodoro Focus Sprint complete! Take a mindful 5-minute break.");
+        }
+      }, 1000);
+    };
+  }
+  if (btnPomoPause) {
+    btnPomoPause.onclick = () => {
+      if (pomoInterval) clearInterval(pomoInterval);
+    };
+  }
+  if (btnPomoReset) {
+    btnPomoReset.onclick = () => {
+      if (pomoInterval) clearInterval(pomoInterval);
+      pomoSeconds = 25 * 60;
+      updatePomoDisplay();
+    };
+  }
+
+  let audioCtx = null;
+  let osc = null;
+  let isZenPlaying = false;
+  const btnZenAudio = document.getElementById("btnZenAudio");
+  const breathCircle = document.getElementById("breathCircle");
+
+  if (btnZenAudio) {
+    btnZenAudio.onclick = () => {
+      if (!isZenPlaying) {
+        try {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          audioCtx = new AudioContext();
+          osc = audioCtx.createOscillator();
+          const gainNode = audioCtx.createGain();
+
+          osc.type = "sine";
+          osc.frequency.setValueAtTime(432, audioCtx.currentTime);
+          gainNode.gain.setValueAtTime(0.08, audioCtx.currentTime);
+
+          osc.connect(gainNode);
+          gainNode.connect(audioCtx.destination);
+          osc.start();
+
+          isZenPlaying = true;
+          btnZenAudio.innerText = "Pause 432Hz Soundscape";
+          if (breathCircle) breathCircle.style.transform = "scale(1.2)";
+        } catch (e) {
+          console.error("Audio error", e);
+        }
+      } else {
+        if (osc) osc.stop();
+        if (audioCtx) audioCtx.close();
+        isZenPlaying = false;
+        btnZenAudio.innerText = "Start 432Hz Soundscape";
+        if (breathCircle) breathCircle.style.transform = "scale(1)";
+      }
+    };
+  }
 };
 
 init();
 
-console.log("✅ Popup script loaded");
+console.log("✅ Popup script loaded with Pomodoro, Tab Tracker & Meditation");
+

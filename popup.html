@@ -245,50 +245,170 @@
       transform: translateY(0);
     }
   }
+  /* Nav Tabs */
+  .nav-tabs {
+    display: flex;
+    gap: 6px;
+    width: 100%;
+    margin-bottom: 14px;
+    background: rgba(0,0,0,0.25);
+    padding: 4px;
+    border-radius: 8px;
+  }
+  .nav-tab-btn {
+    flex: 1;
+    background: transparent;
+    border: none;
+    color: rgba(255,255,255,0.7);
+    font-size: 11px;
+    font-weight: 700;
+    padding: 6px 2px;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .nav-tab-btn.active {
+    background: rgba(255,255,255,0.25);
+    color: white;
+  }
+  .tab-panel {
+    width: 100%;
+    display: none;
+  }
+  .tab-panel.active {
+    display: block;
+  }
+  .pomo-timer-display {
+    font-size: 38px;
+    font-weight: 800;
+    text-align: center;
+    margin: 10px 0;
+    letter-spacing: 2px;
+    text-shadow: 0 4px 10px rgba(0,0,0,0.3);
+  }
+  .pomo-controls {
+    display: flex;
+    gap: 8px;
+    width: 100%;
+    margin-bottom: 10px;
+  }
+  .pomo-btn {
+    flex: 1;
+    background: rgba(255,255,255,0.2);
+    border: 1px solid rgba(255,255,255,0.4);
+    color: white;
+    padding: 8px;
+    border-radius: 8px;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .tab-usage-card {
+    background: rgba(0,0,0,0.2);
+    border-radius: 8px;
+    padding: 8px 12px;
+    font-size: 11px;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+  }
+  .breath-circle {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.1) 70%);
+    border: 2px solid rgba(255,255,255,0.5);
+    margin: 10px auto;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    font-weight: 700;
+    text-align: center;
+    transition: transform 4s ease-in-out;
+  }
 </style>
 
 <div class="container">
-  <h1>Record options</h1>
+  <!-- Nav Switcher -->
+  <div class="nav-tabs">
+    <button class="nav-tab-btn active" id="tabNavRecord">Record 📹</button>
+    <button class="nav-tab-btn" id="tabNavPomo">Pomodoro ⏳</button>
+    <button class="nav-tab-btn" id="tabNavZen">Mind Zen 🧘</button>
+  </div>
 
-  <!-- Webcam Toggle -->
-  <div class="webcam-toggle-section">
-    <div class="webcam-label">
-      <svg viewBox="0 0 24 24">
-        <path
-          d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
-      </svg>
-      <span>Webcam</span>
-      <span class="webcam-status" id="webcamStatus">ON</span>
+  <!-- PANEL 1: RECORDING -->
+  <div class="tab-panel active" id="panelRecord">
+    <!-- Webcam Toggle -->
+    <div class="webcam-toggle-section">
+      <div class="webcam-label">
+        <svg viewBox="0 0 24 24">
+          <path d="M17 10.5V7c0-.55-.45-1-1-1H4c-.55 0-1 .45-1 1v10c0 .55.45 1 1 1h12c.55 0 1-.45 1-1v-3.5l4 4v-11l-4 4z" />
+        </svg>
+        <span>Webcam</span>
+        <span class="webcam-status" id="webcamStatus">ON</span>
+      </div>
+      <div class="toggle-switch active" id="webcamToggle">
+        <div class="toggle-slider"></div>
+      </div>
     </div>
-    <div class="toggle-switch active" id="webcamToggle">
-      <div class="toggle-slider"></div>
+
+    <!-- Recording Buttons -->
+    <div class="button-group">
+      <button id="tab">
+        <svg viewBox="0 0 24 24">
+          <path d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" />
+        </svg>
+        Record Tab
+      </button>
+      <button id="screen">
+        <svg viewBox="0 0 24 24">
+          <path d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z" />
+        </svg>
+        Record Screen
+      </button>
+      <button id="screenshot">
+        <svg viewBox="0 0 24 24">
+          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
+        </svg>
+        Screenshot
+      </button>
     </div>
   </div>
 
-  <!-- Recording Buttons -->
-  <div class="button-group">
-    <button id="tab">
-      <svg viewBox="0 0 24 24">
-        <path
-          d="M18 4l2 4h-3l-2-4h-2l2 4h-3l-2-4H8l2 4H7L5 4H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V4h-4z" />
-      </svg>
-      Record Tab
-    </button>
-    <button id="screen">
-      <svg viewBox="0 0 24 24">
-        <path
-          d="M20 3H4c-1.1 0-2 .9-2 2v11c0 1.1.9 2 2 2h3l-1 1v2h12v-2l-1-1h3c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm0 13H4V5h16v11z" />
-      </svg>
-      Record Screen
-    </button>
-    <button id="screenshot">
-      <svg viewBox="0 0 24 24">
-        <path
-          d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z" />
-      </svg>
-      Screenshot
-    </button>
+  <!-- PANEL 2: POMODORO & TAB USAGE TRACKER -->
+  <div class="tab-panel" id="panelPomo">
+    <div class="pomo-timer-display" id="pomoTime">25:00</div>
+    <div class="pomo-controls">
+      <button class="pomo-btn" id="btnPomoStart">Start 25m</button>
+      <button class="pomo-btn" id="btnPomoPause">Pause</button>
+      <button class="pomo-btn" id="btnPomoReset">Reset</button>
+    </div>
+    <div class="tab-usage-card">
+      <span>Open Tabs Monitored:</span>
+      <b id="openTabsCount">--</b>
+    </div>
+    <div class="tab-usage-card">
+      <span>Focus Mode:</span>
+      <span style="color:#4ecdc4; font-weight:bold;">Distraction Shield Active</span>
+    </div>
   </div>
+
+  <!-- PANEL 3: MIND FOCUSING MEDITATION -->
+  <div class="tab-panel" id="panelZen">
+    <div class="breath-circle" id="breathCircle">Breathe</div>
+    <div style="font-size:11px; text-align:center; margin:8px 0; opacity:0.9;" id="breathInstruction">
+      432Hz Binaural Focus Waves
+    </div>
+    <div class="pomo-controls">
+      <button class="pomo-btn" id="btnZenAudio">Start 432Hz Soundscape</button>
+    </div>
+    <div class="tab-usage-card">
+      <span>Box Breathing:</span>
+      <span>4s In &bull; 4s Hold &bull; 4s Out</span>
+    </div>
+  </div>
+
 </div>
 
 <script src="popup.js"></script>
